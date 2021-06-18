@@ -26,6 +26,7 @@
 #include "mpc.h"
 
 #define min(a, b) a > b ? b : a
+#define max(a, b) a > b ? a : b
 
 long eval_op(long x, char* op, long y)
 {
@@ -35,6 +36,7 @@ long eval_op(long x, char* op, long y)
   if (strcmp(op, "/") == 0) return x / y;
   if (strcmp(op, "%") == 0) return x % y;
   if (strcmp(op, "min") == 0) return min(x, y);
+  if (strcmp(op, "max") == 0) return max(x, y);
   
   return 0;
 }
