@@ -28,27 +28,96 @@
 #define min(a, b) a > b ? b : a
 #define max(a, b) a > b ? a : b
 
-long eval_op(long x, char* op, long y)
+typedef struct {
+  int type;
+  long num;
+  int err;
+} lval;
+
+enum { LVAL_NUM, LVAL_ERR } ;
+enum { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
+
+lval lval_num(long x)
 {
-  if (strcmp(op, "*") == 0) return x * y;
-  if (strcmp(op, "+") == 0) return x + y;
-  if (strcmp(op, "-") == 0) return x - y;
-  if (strcmp(op, "/") == 0) return x / y;
-  if (strcmp(op, "%") == 0) return x % y;
-  if (strcmp(op, "min") == 0) return min(x, y);
-  if (strcmp(op, "max") == 0) return max(x, y);
+  lval v;
+  v.type = LVAL_NUM;
+  v.num = x;
   
-  return 0;
+  return v;
 }
 
-long eval(mpc_ast_t* t)
+lval lval_err(int err)
+{
+  lval v;
+  v.type = LVAL_ERR;
+  v.err = err;
+  
+  return v;
+}
+
+void lval_print_err(lval v)
+{
+  switch (v.err)
+  {
+    case LERR_DIV_ZERO : 
+      printf("error : division by zero");
+      break;
+    case LERR_BAD_OP :
+      printf("error : invalid operator");
+      break;
+    case LERR_BAD_NUM :
+      printf("error : invalid number");
+      break;
+  }  
+}
+
+void lval_print(lval v)
+{
+  switch (v.type)
+  {
+    case LVAL_NUM : 
+      printf("%li", v.num);
+      break;
+    case LVAL_ERR :
+      lval_print_err(v);
+      break;
+  }
+}
+
+void lval_println(lval v) { lval_print(v); putchar('\n'); }
+
+lval eval_op(lval x, char* op, lval y)
+{
+  if (x.type == LVAL_ERR) { return x; }
+  if (y.type == LVAL_ERR) { return y; }
+  
+  if (strcmp(op, "*") == 0) return lval_num(x.num * y.num);
+  if (strcmp(op, "+") == 0) return lval_num(x.num + y.num);
+  if (strcmp(op, "-") == 0) return lval_num(x.num - y.num);
+  if (strcmp(op, "%") == 0) return lval_num(x.num % y.num);
+  if (strcmp(op, "min") == 0) return lval_num(min(x.num, y.num));
+  if (strcmp(op, "max") == 0) return lval_num(max(x.num, y.num));
+  if (strcmp(op, "/") == 0) {
+    return y.num == 0 
+      ? lval_err(LERR_DIV_ZERO) 
+      : lval_num(x.num / y.num);
+  }
+  
+  return lval_err(LERR_BAD_OP);
+}
+
+lval eval(mpc_ast_t* t)
 {
   if(strstr(t->tag, "number"))
-    return atoi(t->contents);
+  {
+    errno = 0;
+    long x = strtol(t->contents, NULL, 10);
+    return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
+  }
     
   char* op = t->children[1]->contents;
   
-  long x = eval(t->children[2]);
+  lval x = eval(t->children[2]);
   
   int i = 3;
   while (strstr(t->children[i]->tag, "expr")) {
@@ -85,13 +154,10 @@ int main(int argc, char** argv)
     
     mpc_result_t r;
     if (mpc_parse("<stdin>", input, Lispy, &r)) {
-      /* On Success Print the AST */
-      mpc_ast_print(r.output);
-      long result = eval(r.output);
-      printf("%li\n", result);
+      lval result = eval(r.output);
+      lval_println(result);
       mpc_ast_delete(r.output);
     } else {
-      /* Otherwise Print the Error */
       mpc_err_print(r.error);
       mpc_err_delete(r.error);
     }
