@@ -36,6 +36,15 @@ lval* lval_sym(char* s)
   return v;
 }
 
+lval* lval_str(char* s)
+{
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_STR;
+  v->str  = malloc(strlen(s) + 1);
+  strcpy(v->str, s);
+  return v;
+}
+
 lval* lval_builtin(lbuiltin func)
 {
   lval* v    = malloc(sizeof(lval));
@@ -96,6 +105,9 @@ void lval_del(lval* v)
       break;
     case LVAL_SYM   :
       free(v->sym);
+      break;
+    case LVAL_STR   :
+      free(v->str); 
       break;
     case LVAL_QEXPR : 
     case LVAL_SEXPR :
@@ -199,6 +211,9 @@ void lval_print(lval* v)
     case LVAL_SYM   :
       printf("%s", v->sym);
       break;
+    case LVAL_STR   :
+      lval_print_str(v);
+      break;
     case LVAL_QEXPR :
       lval_print_expr(v, '{', '}');
       break;
@@ -224,6 +239,15 @@ void lval_println(lval* v)
   lval_print(v); putchar('\n'); 
 }
 
+void lval_print_str(lval* v)
+{
+  char* escaped = malloc(strlen(v->str) + 1);
+  strcpy(escaped, v->str);
+  escaped = mpcf_escape(escaped);
+  printf("\"%s\"", escaped);
+  free(escaped);
+}
+
 void lval_print_expr(lval* v, char open, char close)
 {
   putchar(open);
@@ -245,6 +269,7 @@ char* ltype_name(int t)
     case LVAL_NUM: return "Number";
     case LVAL_ERR: return "Error";
     case LVAL_SYM: return "Symbol";
+    case LVAL_STR: return "String";
     case LVAL_SEXPR: return "S-Expression";
     case LVAL_QEXPR: return "Q-Expression";
     default: return "Unknown";
