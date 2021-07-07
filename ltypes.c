@@ -278,3 +278,101 @@ char* ltype_name(int t)
 }
 
 /* #endregion LVAL */
+
+/* #region LENV */
+
+lenv* lenv_new(void)
+{
+  lenv* e  = malloc(sizeof(lenv));
+  e->par   = NULL;
+  e->count = 0;
+  e->syms  = NULL;
+  e->vals  = NULL;
+  
+  return e;
+}
+
+void lenv_del(lenv* e)
+{
+  for(int i = 0; i < e->count; i++)
+  {
+    free(e->syms[i]);
+    lval_del(e->vals[i]);
+  }
+  free(e->syms);
+  free(e->vals);
+  free(e);
+}
+
+lenv* lenv_copy(lenv* e)
+{
+  lenv* v  = malloc(sizeof(lenv));
+  v->count = e->count;
+  v->par   = e->par;
+  v->syms  = malloc(sizeof(char*) * v->count);
+  v->vals  = malloc(sizeof(lval*) * v->count);
+  
+  for(int i = 0; i < v->count; i++)
+  {
+    v->syms[i] = malloc(strlen(v->syms[i]) + 1);
+    strcpy(v->syms[i], e->syms[i]);
+    v->vals[i] = lval_copy(e->vals[i]);
+  }
+  
+  return v;
+}
+
+lval* lenv_get(lenv* e, lval* v)
+{
+  for(int i = 0; i < e->count; i++)
+  {
+    if(strcmp(v->sym, e->syms[i]) == 0)
+    {
+      return lval_copy(e->vals[i]);
+    }
+  }
+  
+  if (e->par)
+  {
+    return lenv_get(e->par, v);
+  }
+  else
+  {
+    return lval_err("Unbound symbol '%s'", v->sym);
+  }
+}
+
+void lenv_put(lenv* e, lval* k, lval* v)
+{
+  /* If the value with the same name exists
+     Delete it and create a new one      */
+     
+  for(int i = 0; i < e->count; i++)
+  {
+    if(strcmp(e->syms[i], k->sym) == 0)
+    {
+      lval_del(e->vals[i]);
+      e->vals[i] = lval_copy(v);
+      return;
+    }
+  }
+  
+  /* Create a new one otherwise */
+  e->count++;
+  e->vals = realloc(e->vals, sizeof(lval*) * e->count);
+  e->syms = realloc(e->syms, sizeof(char*) * e->count);  
+  e->vals[e->count-1] = lval_copy(v);
+  e->syms[e->count-1] = malloc(strlen(k->sym)+1);
+  strcpy(e->syms[e->count-1], k->sym);
+}
+
+void lenv_def(lenv* e, lval* k, lval* v)
+{
+  /* Iterate till e has no parent (global scope) */
+  while(e->par) { e = e->par; }
+  /* Declate the symbol there */
+  lenv_put(e, k, v);
+}
+
+/* #endregion LENV */
+

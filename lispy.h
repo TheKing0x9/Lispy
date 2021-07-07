@@ -58,7 +58,7 @@
   
   lval* lval_read(mpc_ast_t* t);
   
-  /* lval constructors */
+  /* lval functions */
   lval* lval_num(long x);
   lval* lval_err(char* fmt, ...);
   lval* lval_sym(char* s);
@@ -67,7 +67,7 @@
   lval* lval_lambda(lval* formals, lval* body);
   lval* lval_sexpr(void);
   lval* lval_qexpr(void);
-  void lval_del(lval* v);
+  void  lval_del(lval* v);
   lval* lval_copy(lval* v);
   lval* lval_add(lval* v, lval* x);
   lval* lval_join(lval* x, lval* y);
@@ -75,15 +75,18 @@
   lval* lval_take(lval* v, int i);
   
   /* lval print */
-  void lval_print(lval *v);
-  void lval_println(lval *v);
-  void lval_print_str(lval *v);
-  void lval_print_expr(lval* v, char open, char close);
+  void  lval_print(lval *v);
+  void  lval_println(lval *v);
+  void  lval_print_str(lval *v);
+  void  lval_print_expr(lval* v, char open, char close);
   
-  /* lenv constructors */
+  /* lenv functions */
   lenv* lenv_new(void);
-  void lenv_del(lenv* e);
   lenv* lenv_copy(lenv* e);
+  void  lenv_del(lenv* e);
+  lval* lenv_get(lenv* e, lval* v);
+  void  lenv_put(lenv* e, lval* k, lval* v);
+  void  lenv_def(lenv* e, lval* k, lval* v);
   
   char* ltype_name(int t);
   
@@ -101,7 +104,7 @@
   lval* builtin_ord(lenv* e, lval* a, char* op);
   lval* builtin_cmp(lenv* e, lval* a, char* op);
   
-  int lval_eq(lval* x, lval* y);
+  int   lval_eq(lval* x, lval* y);
   
   #define LASSERT(args, cond, fmt, ...) \
     if (!(cond)) { lval* err = lval_err(fmt, ##__VA_ARGS__); lval_del(args); return err; }
